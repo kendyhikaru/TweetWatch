@@ -8,6 +8,8 @@ from typing import Dict, List, Optional
 import time
 import json
 import os
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 
 class NitterSeleniumHandler:
     """Handler for interacting with Nitter using Selenium"""
@@ -18,7 +20,7 @@ class NitterSeleniumHandler:
         self.base_url = config.get('base_url', 'https://nitter.net')
         self.driver = None
         self.processed_tweets = set()
-        
+        self.config = config
         # Tải danh sách tweets đã xử lý
         self._load_processed_tweets()
         
@@ -57,7 +59,12 @@ class NitterSeleniumHandler:
             # Add real user agent
             options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36')
             
-            self.driver = webdriver.Chrome(options=options)
+            # Cấu hình đường dẫn binary của Chromium
+            if 'binary_location' in self.config:
+                options.binary_location = self.config['binary_location']
+        
+            
+            self.driver = webdriver.Chrome(options=options, service=Service())
             
             # Add JavaScript to hide automation signs
             self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
