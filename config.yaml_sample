@@ -1,0 +1,33 @@
+# System Configuration
+system:
+  check_interval: 300  # 5 minutes
+  max_tweets_per_check: 20
+  users:
+    - Dinosn
+    - blackorbird
+    - cyber_advising
+
+# Anthropic API Configuration
+anthropic:
+  api_key: "api key"
+  # model: "claude-3-5-sonnet-20241022"
+  model: "claude-3-opus-20240229"
+  max_tokens: 4096
+  temperature: 0.7
+  
+# Logging Configuration
+logging:
+  log_dir: "logs"
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Nitter Configuration
+nitter:
+  url: "https://nitter.net"
+  timeout: 30
+  retries: 3
+  retry_delay: 5
+
+telegram:
+  bot_token: "bot token"
+  chat_id: "chat id"
