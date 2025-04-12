@@ -107,17 +107,18 @@ class NitterSeleniumHandler:
                     # Get tweet time
                     time_element = tweet_element.find_element(By.CSS_SELECTOR, "span.tweet-date a")
                     time_text = time_element.text.strip()
-                    
-                    # Get tweet content
-                    content_element = tweet_element.find_element(By.CSS_SELECTOR, "div.tweet-content")
-                    tweet_content = content_element.get_attribute("outerHTML")
-                    
-                    tweets.append({
-                        'id': tweet_id,
-                        'time': time_text,
-                        'content': tweet_content,
-                        'link': tweet_link
-                    })
+                    # Check tweet time 
+                    if time_text.endswith('m') :
+                        # Get tweet content
+                        content_element = tweet_element.find_element(By.CSS_SELECTOR, "div.tweet-content")
+                        tweet_content = content_element.get_attribute("outerHTML")
+                        
+                        tweets.append({
+                            'id': tweet_id,
+                            'time': time_text,
+                            'content': tweet_content,
+                            'link': tweet_link
+                        })
                 except NoSuchElementException as e:
                     self.logger.error(f"Error extracting tweet data: {str(e)}")
                     continue

@@ -1,10 +1,12 @@
 import yaml
 import os
 import sys
+import time
 from typing import Dict, Optional
 from libs.logger import Logger
 from libs.nitter_selenium import NitterSeleniumHandler
 from libs.anthropic_handler import AnthropicHandler
+from libs.gemini_handler import GeminiHandler
 from libs.telegram_bot import TelegramBot
 
 def load_config() -> Optional[Dict]:
@@ -41,7 +43,7 @@ def setup_logging(config: Dict) -> Optional[Logger]:
         return None
 
 def process_tweets(nitter_handler: NitterSeleniumHandler, 
-                  anthropic_handler: AnthropicHandler,
+                  ai_handler,
                   username: str,
                   logger: Logger,
                   telegram_bot: TelegramBot) -> bool:
@@ -65,7 +67,7 @@ def process_tweets(nitter_handler: NitterSeleniumHandler,
                     continue
                 
                 # Analyze tweet with Claude
-                analysis = anthropic_handler.analyze_tweet(tweet_content)
+                analysis = ai_handler.analyze_tweet(tweet_content)
                 
                 if analysis:
                     logger.info(f"Analyzed tweet {tweet['id']}: {analysis}")
@@ -96,7 +98,7 @@ def process_tweets(nitter_handler: NitterSeleniumHandler,
             except Exception as e:
                 logger.error(f"Error processing tweet {tweet['id']}: {str(e)}")
                 continue
-                
+            time.sleep(10)  # Wait 10 seconds before processing next tweet
         return True
     except Exception as e:
         logger.error(f"Error processing user @{username}: {str(e)}")
@@ -120,8 +122,8 @@ def main() -> int:
         
         # Initialize handlers
         nitter_handler = NitterSeleniumHandler(config.get('nitter', {}), logger)
-        anthropic_handler = AnthropicHandler(config.get('anthropic', {}), logger)
-        
+        # anthropic_handler = AnthropicHandler(config.get('anthropic', {}), logger)
+        gemini_handler = GeminiHandler(config.get('gemini', {}), logger)
         # Start Nitter handler
         if not nitter_handler.start():
             logger.error("Failed to start Nitter handler")
@@ -136,7 +138,7 @@ def main() -> int:
         # Process tweets from each user
         success = True
         for username in users:
-            if not process_tweets(nitter_handler, anthropic_handler, username, logger, telegram_bot):
+            if not process_tweets(nitter_handler, gemini_handler, username, logger, telegram_bot):
                 success = False
                 
         # Stop Nitter handler

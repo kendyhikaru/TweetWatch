@@ -99,7 +99,7 @@ class AnthropicHandler:
                 "exploit_type": "exploit_type",
                 "tweet_url": "tweet_url",
                 "is_warning": true of false,
-                "summay": "summary"
+                "summary": "summary"
             }}
             Return JSON with the following format if topic is none:
             {{
