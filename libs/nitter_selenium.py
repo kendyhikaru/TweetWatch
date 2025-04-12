@@ -115,7 +115,7 @@ class NitterSeleniumHandler:
                     time_element = tweet_element.find_element(By.CSS_SELECTOR, "span.tweet-date a")
                     time_text = time_element.text.strip()
                     # Check tweet time 
-                    if time_text.endswith('m') :
+                    if time_text.endswith('m') or time_text == "1h":
                         # Get tweet content
                         content_element = tweet_element.find_element(By.CSS_SELECTOR, "div.tweet-content")
                         tweet_content = content_element.get_attribute("outerHTML")
