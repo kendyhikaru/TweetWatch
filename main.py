@@ -2,6 +2,7 @@ import yaml
 import os
 import sys
 import time
+import json
 from typing import Dict, Optional
 from libs.logger import Logger
 from libs.nitter_selenium import NitterSeleniumHandler
@@ -46,60 +47,66 @@ def process_tweets(nitter_handler: NitterSeleniumHandler,
                   ai_handler,
                   username: str,
                   logger: Logger,
-                  telegram_bot: TelegramBot) -> bool:
+                  telegram_bot: TelegramBot,
+                  old_tweet_ids):
     """Process tweets from a user"""
     try:
+        new_tweet_ids = []
         logger.info(f"Processing tweets from @{username}")
-        
         # Get new tweets
         tweets = nitter_handler.get_new_tweets(username)
         if not tweets:
             logger.info(f"No new tweets from @{username}")
-            return True
-            
+            return new_tweet_ids
+        
         # Process each tweet
         for tweet in tweets:
-            try:
-                # Get full tweet content
-                tweet_content = tweet['content']
-                if not tweet_content:
-                    logger.error(f"Could not get content for tweet {tweet['id']}")
-                    continue
-                
-                # Analyze tweet with Claude
-                analysis = ai_handler.analyze_tweet(tweet_content)
-                
-                if analysis:
-                    logger.info(f"Analyzed tweet {tweet['id']}: {analysis}")
-                else:
-                    logger.error(f"Could not analyze tweet {tweet['id']}")
-
-                # Check analysis result and send warning if needed
-                if analysis and analysis.get('is_warning'):
-                    # Create warning message
-                    warning_msg = f"""⚠️ <b>Security Warning</b>
+            tweet_id = tweet['id']
+            if tweet_id not in old_tweet_ids:
+                try:
+                    # Get full tweet content
+                    tweet_content = tweet['content']
+                    if not tweet_content:
+                        logger.error(f"Could not get content for tweet {tweet['id']}")
+                        continue
                     
-🔍 <b>{analysis.get('title')}</b>
+                    # Analyze tweet with Claude
+                    analysis = ai_handler.analyze_tweet(tweet_content)
+                    
+                    if analysis:
+                        logger.info(f"Analyzed tweet {tweet['id']}: {analysis}")
+                    else:
+                        logger.error(f"Could not analyze tweet {tweet['id']}")
 
-📌 Information:
-- Topic: {analysis.get('topic')}
-- Info Type: {analysis.get('info_type')}
-- Target: {analysis.get('target')}
-- Product: {analysis.get('product_name')}
-- Company: {analysis.get('company_name')}
-- Vulnerability Type: {analysis.get('exploit_type')}
-- Summary: {analysis.get('summary')}
+                    # Check analysis result and send warning if needed
+                    if analysis and analysis.get('is_warning'):
+                        # Create warning message
+                        warning_msg = f"""⚠️ <b>Security Warning</b>
+                        
+    🔍 <b>{analysis.get('title')}</b>
 
-🔗 Tweet Link: {tweet.get('link')}"""
+    📌 Information:
+    - Topic: {analysis.get('topic')}
+    - Info Type: {analysis.get('info_type')}
+    - Target: {analysis.get('target')}
+    - Product: {analysis.get('product_name')}
+    - Company: {analysis.get('company_name')}
+    - Vulnerability Type: {analysis.get('exploit_type')}
+    - Summary: {analysis.get('summary')}
 
-                    # Send warning via Telegram
-                    if not telegram_bot.send_message(warning_msg):
-                        logger.error(f"Could not send warning for tweet {tweet['id']}")
-            except Exception as e:
-                logger.error(f"Error processing tweet {tweet['id']}: {str(e)}")
-                continue
-            time.sleep(10)  # Wait 10 seconds before processing next tweet
-        return True
+    🔗 Tweet Link: {tweet.get('link')}"""
+
+                        # Send warning via Telegram
+                        if not telegram_bot.send_message(warning_msg):
+                            logger.error(f"Could not send warning for tweet {tweet['id']}")
+                        # Update 
+                        new_tweet_ids.append(tweet_id)
+                except Exception as e:
+                    logger.error(f"Error processing tweet {tweet['id']}: {str(e)}")
+                    continue
+                time.sleep(10)  # Wait 10 seconds before processing next tweet
+
+        return new_tweet_ids
     except Exception as e:
         logger.error(f"Error processing user @{username}: {str(e)}")
         return False
@@ -134,17 +141,23 @@ def main() -> int:
         if not users:
             logger.error("No users found in configuration")
             return 1
-                    
+        file_path = "tweet_id.txt"
+        # Get old tweet
+        old_tweet_ids = []
+        with open(file_path) as fileObject1:
+            old_tweet_ids = json.loads(fileObject1.readline())
         # Process tweets from each user
-        success = True
+        new_tweet_id_list = []
         for username in users:
-            if not process_tweets(nitter_handler, gemini_handler, username, logger, telegram_bot):
-                success = False
-                
+            new_tweet_id = process_tweets(nitter_handler, gemini_handler, username, logger, telegram_bot, old_tweet_ids)
+            new_tweet_id_list += new_tweet_id
+        # Save to file
+        with open(file_path, "w") as fileObject2:
+            fileObject2.write(json.dumps(new_tweet_id_list))
+        fileObject2.close()    
         # Stop Nitter handler
         nitter_handler.stop()
                 
-        return 0 if success else 1
         
     except Exception as e:
         logger.error(f"Program error: {str(e)}")
